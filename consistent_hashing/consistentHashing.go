@@ -1,6 +1,7 @@
 package consistenthashing
 
 import (
+	"fmt"
 	"hash/maphash"
 	"slices"
 
@@ -50,6 +51,7 @@ func NewHashRing() *HashRing {
 
 func (hr *HashRing) getValueHash(val string) uint64 {
 	var h maphash.Hash
+	h.SetSeed(maphash.MakeSeed())
 	h.WriteString(val)
 	return h.Sum64()
 }
@@ -91,6 +93,8 @@ func (hr *HashRing) InsertNode(node *CacheNode) uint64 {
 	// sort it for maintaning order inside the Ring
 	slices.Sort(hr.Nodes)
 
+	fmt.Println("New node added:", nodeHash)
+
 	return nodeHash
 }
 
@@ -105,6 +109,8 @@ func (hr *HashRing) RemoveNode(nodeRef *CacheNode) uint64 {
 		return val == nodeHash
 	})
 	
+	fmt.Println("Node removed:", nodeHash)
+
 	return nodeHash
 }
 
