@@ -1,6 +1,11 @@
 package consistenthashing
 
-import "github.com/OriD-19/distributed_cache/lruCache"
+import (
+	"hash/maphash"
+	"slices"
+
+	"github.com/OriD-19/distributed_cache/lruCache"
+)
 
 type CacheNodeStatus int
 
@@ -18,8 +23,8 @@ type CacheNode struct {
 
 // Consistent Hashing implementation
 type HashRing struct {
-	Ring map[int]*CacheNode
-	Nodes    []int // sorted list with all the hashes of nodes
+	Ring map[uint64]*CacheNode
+	Nodes    []uint64 // sorted list with all the hashes of nodes
 }
 
 func NewCacheNode(cache *lruCache.LRUCache, id string) *CacheNode {
@@ -37,8 +42,78 @@ func NewHashRing() *HashRing {
 
 	var hashRing HashRing	
 
-	hashRing.Ring = make(map[int]*CacheNode)
-	hashRing.Nodes = []int{}
+	hashRing.Ring = make(map[uint64]*CacheNode)
+	hashRing.Nodes = []uint64{}
 
 	return &hashRing
+}
+
+func (hr *HashRing) getValueHash(val string) uint64 {
+	var h maphash.Hash
+	h.WriteString(val)
+	return h.Sum64()
+}
+
+// function for finding the position of the next node inside the ring.
+// see the functionality of the consistent hashing algorithm with 
+// clockwise policy
+func (hr *HashRing) binarySearchNode(hash uint64) uint64 {
+	
+	l := 0
+	r := len(hr.Nodes) - 1
+	m := 0
+	finishOnRight := 0
+
+	for l <= r {
+
+		m = (l + r) / 2
+		
+		if hr.Nodes[m] == hash {
+			return hr.Nodes[m]
+		} else if hr.Nodes[m] > hash {
+			r = m - 1
+			finishOnRight = 0
+		} else if hr.Nodes[m] < hash {
+			l = m + 1
+			finishOnRight = 1
+		}
+	}
+
+	// return the hash associated with the next Node that suits the current hash
+	return hr.Nodes[uint64((m + finishOnRight) % len(hr.Nodes))]
+}
+
+func (hr *HashRing) InsertNode(node *CacheNode) uint64 {
+	nodeHash := hr.getValueHash(node.ID)
+	
+	hr.Ring[nodeHash] = node
+	hr.Nodes = append(hr.Nodes, nodeHash)
+	// sort it for maintaning order inside the Ring
+	slices.Sort(hr.Nodes)
+
+	return nodeHash
+}
+
+func (hr *HashRing) RemoveNode(nodeRef *CacheNode) uint64 {
+
+	nodeHash := hr.getValueHash(nodeRef.ID)
+
+	delete(hr.Ring, nodeHash)
+
+	// delete the node inside the list of hashes (Go 1.21+)
+	hr.Nodes = slices.DeleteFunc(hr.Nodes, func(val uint64) bool {
+		return val == nodeHash
+	})
+	
+	return nodeHash
+}
+
+func (hr *HashRing) GetNode(key string) *CacheNode {
+	
+	keyHash := hr.getValueHash(key)
+
+	// perform binary search through all the node hashes registered
+	nodeHash := hr.binarySearchNode(keyHash)
+
+	return hr.Ring[nodeHash]
 }
