@@ -1,7 +1,7 @@
 package main
 
 import "fmt"
-import "github.com/OriD-19/distributed_cache/lru_cache"
+import "github.com/OriD-19/distributed_cache/lruCache"
 
 func main() {
 

@@ -1,4 +1,4 @@
-package lru_cache
+package lruCache
 
 import "fmt"
 
