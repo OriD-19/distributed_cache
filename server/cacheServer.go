@@ -5,6 +5,11 @@ import (
 	"net"
 )
 
+/*
+This simple TCP server will handle cache connections,
+as well as executing commands that interact with the Cache instance via TCP
+*/
+
 func handleCacheConnection(conn net.Conn) {
 	defer conn.Close()
 }

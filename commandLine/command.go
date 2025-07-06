@@ -3,7 +3,7 @@ package commandLine
 import "fmt"
 
 type Command interface {
-	execute()
+	execute() (string, error)
 }
 
 type PutCommand struct {
@@ -32,14 +32,14 @@ func NewGetCommand(cache CacheReceiver, key string) *GetCommand {
 	}
 }
 
-func (c *PutCommand) execute() error {
+func (c *PutCommand) execute() (string, error) {
 	err := c.Cache.Put(c.Key, c.Value)
 
 	if err != nil {
-		return fmt.Errorf("Could not perform SET operation: %v", err)
+		return "", fmt.Errorf("Could not perform SET operation: %v", err)
 	}
 
-	return nil
+	return "OK", nil
 }
 
 func (c *GetCommand) execute() (string, error) {
