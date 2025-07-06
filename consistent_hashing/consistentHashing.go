@@ -26,6 +26,7 @@ type CacheNode struct {
 type HashRing struct {
 	Ring map[uint64]*CacheNode
 	Nodes    []uint64 // sorted list with all the hashes of nodes
+	Hasher maphash.Hash
 }
 
 func NewCacheNode(cache *lruCache.LRUCache, id string) *CacheNode {
@@ -45,15 +46,18 @@ func NewHashRing() *HashRing {
 
 	hashRing.Ring = make(map[uint64]*CacheNode)
 	hashRing.Nodes = []uint64{}
+	var h maphash.Hash
+	hashRing.Hasher = h
 
 	return &hashRing
 }
 
 func (hr *HashRing) getValueHash(val string) uint64 {
-	var h maphash.Hash
-	h.SetSeed(maphash.MakeSeed())
-	h.WriteString(val)
-	return h.Sum64()
+	hr.Hasher.WriteString(val)
+	value := hr.Hasher.Sum64()
+
+	hr.Hasher.Reset()
+	return value
 }
 
 // function for finding the position of the next node inside the ring.

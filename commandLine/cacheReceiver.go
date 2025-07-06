@@ -1,0 +1,6 @@
+package commandLine
+
+type CacheReceiver interface {
+	Put(key string, value string) error
+	Get(key string) (string, error)
+}
