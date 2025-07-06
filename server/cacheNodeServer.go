@@ -20,23 +20,13 @@ var cacheInstance *lruCache.LRUCache
 func handleCacheConnection(conn net.Conn) {
 	defer conn.Close()
 
-	reader := bufio.NewReader(conn)
+	reader := bufio.NewScanner(conn)
 
-	for {
-		reader.Reset(conn)
-		text, err := reader.ReadString('\n')
-
-		if len(text) == 0 && err != nil {
-			if err.Error() == "EOF" {
-				fmt.Println("Error reading input:", err)
-				break
-			}
-			continue
-		}
+	for reader.Scan() {
+		text := reader.Text()
 
 		// split the input by whitespaces
-		removeNewline := strings.Trim(text, "\n")
-		words := strings.Split(removeNewline, " ")
+		words := strings.Split(text, " ")
 
 		if len(words) == 0 {
 			continue
@@ -45,29 +35,33 @@ func handleCacheConnection(conn net.Conn) {
 		command := words[0]
 		args := words[1:]
 
-		fmt.Println(command, args, "what?")
-
 		// generate the command via the factory
 		cmd, err := commandLine.GetCommandToExecute(command, cacheInstance, args...)
 
 		if err != nil {
-			conn.Write([]byte(err.Error()))
+			conn.Write([]byte(err.Error() + "\n"))
 			continue
 		}
 
 		msg, err := cmd.Execute()
 
 		if err != nil {
-			conn.Write([]byte(err.Error()))
+			conn.Write([]byte(err.Error() + "\n"))
 			continue
 		}
 
-		conn.Write([]byte(msg))
+		conn.Write([]byte(msg + "\n"))
 
 		if msg == "BYE" {
-			return
+			break
 		}
 	}
+
+	if reader.Err() != nil {
+		fmt.Println("Error while reading input:", reader.Err())
+	}
+
+	fmt.Println("Connection closed for address", conn.RemoteAddr())
 }
 
 func CacheServer(port int) {
@@ -90,7 +84,7 @@ func CacheServer(port int) {
 			continue
 		}
 
-		fmt.Println("Established a new connection")
+		fmt.Printf("Client %s connected\n", conn.RemoteAddr())
 		go handleCacheConnection(conn)
 	}
 }

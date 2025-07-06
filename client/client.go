@@ -19,14 +19,15 @@ func CacheClient() {
 	defer conn.Close()
 	fmt.Println("Connected to Cache Instance in port 8080")
 
-	reader := bufio.NewReader(os.Stdin)
+	reader := bufio.NewScanner(os.Stdin)
 
-	for {
+	fmt.Print("%> ")
+	for reader.Scan() {
 		// wait for user input
-		fmt.Print("%> ")
-		message, _ := reader.ReadString('\n')
 
-		_, err := conn.Write([]byte(message))	
+		message := reader.Text()
+
+		_, err := conn.Write([]byte(message + "\n"))	
 
 		if err != nil {
 			fmt.Println("What the hell is this error", err)
@@ -35,17 +36,17 @@ func CacheClient() {
 
 		// this line is causing a weird error
 		// either the error is inside the server, or there is something wrong with this
-		fmt.Println("After sending the message...")
-		response, err := bufio.NewReader(conn).ReadString('\n')
+		
+		serverReader := bufio.NewScanner(conn)
+		serverReader.Scan()
+		response := serverReader.Text()
 
-		if len(message) == 0 && err != nil {
-			if err.Error() == "EOF" {
-				fmt.Println("Error receiving response: ", err)
-				continue
-			}
-			fmt.Println("error reading the response:", err)
+		fmt.Println(response)
+		
+		if message == "EXIT" {
+			break
 		}
 
-		fmt.Print(response)
+		fmt.Print("%> ")
 	}
 }

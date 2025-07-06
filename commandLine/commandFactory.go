@@ -6,13 +6,13 @@ func GetCommandToExecute(command string, cache CacheReceiver, args ...string) (C
 	switch command {
 	case "GET":
 		if len(args) != 1 {
-			break // not enough arguments, or too many
+			return nil, fmt.Errorf("Syntax Error: Wrong number of arguments for GET command (expected 1, got %d)", len(args))
 		}
 
 		return NewGetCommand(cache, args[0]), nil
 	case "SET":
 		if len(args) != 2 {
-			break // not enough arguments, or too many
+			return nil, fmt.Errorf("Syntax Error: Wrong number of arguments for SET command (expected 2, got %d)", len(args))
 		}
 
 		return NewPutCommand(cache, args[0], args[1]), nil
@@ -21,5 +21,5 @@ func GetCommandToExecute(command string, cache CacheReceiver, args ...string) (C
 		return NewExitCommand(cache), nil
 	}
 
-	return nil, fmt.Errorf("Could not find the right command, buddy")
+	return nil, fmt.Errorf("Syntax Error: Unkown command")
 }
