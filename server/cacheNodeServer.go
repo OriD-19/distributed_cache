@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/OriD-19/distributed_cache/commandLine"
 	"github.com/OriD-19/distributed_cache/lruCache"
@@ -14,30 +15,28 @@ This simple TCP server will handle cache connections,
 as well as executing commands that interact with the Cache instance via TCP
 */
 
+var cacheInstance *lruCache.LRUCache
+
 func handleCacheConnection(conn net.Conn) {
 	defer conn.Close()
 
-
 	reader := bufio.NewReader(conn)
-	cacheInstance := lruCache.NewLRUCache(100)// capacity of 100 items per node
-	
-	for {
-		fmt.Print("%> ")
 
+	for {
+		reader.Reset(conn)
 		text, err := reader.ReadString('\n')
 
-		if err != nil {
-			fmt.Println("Error reading input:", err)
-			return
+		if len(text) == 0 && err != nil {
+			if err.Error() == "EOF" {
+				fmt.Println("Error reading input:", err)
+				break
+			}
+			continue
 		}
 
 		// split the input by whitespaces
-		words := []string{}
-		for _, word := range text {
-			if word != ' ' {
-				words = append(words, string(word))
-			}
-		}
+		removeNewline := strings.Trim(text, "\n")
+		words := strings.Split(removeNewline, " ")
 
 		if len(words) == 0 {
 			continue
@@ -46,11 +45,13 @@ func handleCacheConnection(conn net.Conn) {
 		command := words[0]
 		args := words[1:]
 
-		// generate the command via the factory
-		cmd := commandLine.GetCommandToExecute(command, cacheInstance, args...)
+		fmt.Println(command, args, "what?")
 
-		if cmd == nil {
-			conn.Write([]byte(fmt.Sprintf("Invalid syntax for the %s command", command)))
+		// generate the command via the factory
+		cmd, err := commandLine.GetCommandToExecute(command, cacheInstance, args...)
+
+		if err != nil {
+			conn.Write([]byte(err.Error()))
 			continue
 		}
 
@@ -66,7 +67,7 @@ func handleCacheConnection(conn net.Conn) {
 		if msg == "BYE" {
 			return
 		}
-	}	
+	}
 }
 
 func CacheServer(port int) {
@@ -75,11 +76,12 @@ func CacheServer(port int) {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 
 	if err != nil {
-		panic(err)	
+		panic(err)
 	}
 
 	defer ln.Close()
 
+	cacheInstance = lruCache.NewLRUCache(100)
 	// accept connections
 	for {
 		conn, err := ln.Accept()
@@ -88,6 +90,7 @@ func CacheServer(port int) {
 			continue
 		}
 
+		fmt.Println("Established a new connection")
 		go handleCacheConnection(conn)
 	}
 }
