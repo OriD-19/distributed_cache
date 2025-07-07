@@ -8,9 +8,9 @@ func NewSampleHashRing() *HashRing {
 	cache2 := lruCache.NewLRUCache(10)
 	cache3 := lruCache.NewLRUCache(10)
 
-	cacheNode1 := NewCacheNode(cache1, "Node_1")
-	cacheNode2 := NewCacheNode(cache2, "Node_2")
-	cacheNode3 := NewCacheNode(cache3, "Node_3")
+	cacheNode1 := NewCacheNode(cache1, "Node_1", "localhost:8080")
+	cacheNode2 := NewCacheNode(cache2, "Node_2", "localhost:8081")
+	cacheNode3 := NewCacheNode(cache3, "Node_3", "localhost:8082")
 
 	hashRing := NewHashRing()
 

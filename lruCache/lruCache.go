@@ -48,7 +48,7 @@ func (cache *LRUCache) Get(key string) (string, error) {
 	}
 
 	// reinster the node as a high proiority node
-	// spwan a goroutine? interesting
+	// spawn a goroutine? interesting
 	cache.List.ReInsertAtHead(nodeRef)
 	
 	return *nodeRef.Data.Value, nil	
